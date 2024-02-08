@@ -1,5 +1,5 @@
 TD 2 
-Magali CASAMAYOU 
+Questions de cours 
 
 Exercice 1.1 : 
 
