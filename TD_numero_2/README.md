@@ -1,4 +1,4 @@
-**#TD 2**
+**TD 2**
 
 Questions de cours 
 
