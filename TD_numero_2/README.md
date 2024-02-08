@@ -1,8 +1,8 @@
-#TD 2#
+**#TD 2**
 
-**Questions de cours **
+Questions de cours 
 
-**Exercice 1.1 : **
+Exercice 1.1 : 
 
 Dans l'exemple donné dans le cours "more complicated case", nous pouvons distinguer deux scénarios. En effet le P2 reçoit 2 messages de nimporte qui, mais il envoie un message au P0, intercalé entre les $
 Ainsi, on distingue deux cas : le cas où le premier message reçu par P2 est celui envoyé par P1 et le cas où c'est celui de P0.
@@ -13,7 +13,7 @@ Ainsi, on distingue deux cas : le cas où le premier message reçu par P2 est ce
 
 On ne peut donc pas prévoir quel message sera reçu en premier, cela dépend de la rapidité des processeurs. Sans information supplémentaire, on suppose qu'elle est de 50%.
 
-**Exercice 1.2 : **
+Exercice 1.2 : 
 
 1. D'après la loi d’Amdhal, on peut prédire que l’accélération maximale que pourra obtenir Alice avec son code est : S(n) -> 1/f lorsque n>>1, avec f la fraction de ts (temps nécessaire pour exécuter le code de manière séquentielle) représentant la partie du code qui ne peut être parallélisée. Soit S(n) = 10.
 
