@@ -33,7 +33,7 @@ Concernant le speed up, on se contentera du calcul pour le "lifegame_3_4processu
 Le speed-up représente la rapidité gagnée en ayant parallélisé la partie du code parallélisable. Il est calculé comme le rapport entre le temps du programme dans sa version séquentiel et sa version parallélisée. 
 
 Pour le calculer j'ai choisi un nombre arbitraire d'itérations _n_ pour la boucle while : clé de la durée du code. Il faut donc mettre deux marqueurs de temps : un avant la boucle et un autre après la boucle (donc après _n_ itérations).
-### Calcul du Speed-up (\(S(n)\))
+### Calcul du Speed-up $S(n)$
 
 On peut ainsi calculer le speed-up :
 
