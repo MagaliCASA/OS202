@@ -35,11 +35,11 @@ Le speed-up représente la rapidité gagnée en ayant parallélisé la partie du
 Pour le calculer j'ai choisi un nombre arbitraire d'itérations _n_ pour la boucle while : clé de la durée du code. Il faut donc mettre deux marqueurs de temps : un avant la boucle et un autre après la boucle (donc après _n_ itérations).
 ### Calcul du Speed-up (\(S(n)\))
 
-Le speed-up (\(S(n)\)) est calculé en utilisant la formule suivante :
+On peut ainsi calculer le speed-up :
 
 \[S(n) = \frac{T_s(n)}{T_p(n)}\]
 
-où \(T_s\) représente le temps en séquentiel, \(T_p\) le temps parallélisé, et \(n\) le nombre d'itérations.
+avec \(T_s\) le temps en séquentiel, \(T_p\) le temps parallélisé, et *n* le nombre d'itérations.
 
 ## Résultats du Speed-up pour 4 processus
 
