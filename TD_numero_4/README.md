@@ -37,7 +37,7 @@ Pour le calculer j'ai choisi un nombre arbitraire d'itérations _n_ pour la bouc
 
 On peut ainsi calculer le speed-up :
 
-$\'S(n) = \frac{T_s(n)/T_p(n)}\'$
+$\'S(n) = \frac{T_s(n),T_p(n)}\'$
 
 avec \T_s\ le temps en séquentiel, \T_p\ le temps parallélisé, et *n* le nombre d'itérations.
 
