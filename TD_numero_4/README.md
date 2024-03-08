@@ -25,4 +25,30 @@ Ce problème est également mal équilibré, en effet, un processus peut avoir p
 
 Tous les codes ont été vérifiés et donnent le résultat attendu. Malheureusement, le dernier fichier ("lifegame_3_5processus.py") n'a pas pu être testé jusqu'à l'affichage puisque je n'ai à disposition que des ordinateurs possédant 4 coeurs. 
 
-Concernant le speed up, on 
+j'ai utilisé la formule de . Elle m'a semblé la plus adaptée car 
+Pour cela, j'ai calculé f, la proportion du programme (en temps CPU séquentiel) qui ne peut être parallélisé et fonctionne donc en séquentiel, en faisant appelle à la fonction time.time(). 
+Ainsi j'obtiens un speed up de , ce qui était attendu, car j'ai multiplé par 4 le nombre de processus. 
+
+Concernant le speed up, on se contentera du calcul pour le "lifegame_3_4processus".
+Le speed-up représente la rapidité gagnée en ayant parallélisé la partie du code parallélisable. Il est calculé comme le rapport entre le temps du programme dans sa version séquentiel et sa version parallélisée. 
+
+Pour le calculer j'ai choisi un nombre arbitraire d'itérations _n_ pour la boucle while : clé de la durée du code. Il faut donc mettre deux marqueurs de temps : un avant la boucle et un autre après la boucle (donc après _n_ itérations).
+### Calcul du Speed-up (\(S(n)\))
+
+Le speed-up (\(S(n)\)) est calculé en utilisant la formule suivante :
+
+\[S(n) = \frac{T_s(n)}{T_p(n)}\]
+
+où \(T_s\) représente le temps en séquentiel, \(T_p\) le temps parallélisé, et \(n\) le nombre d'itérations.
+
+## Résultats du Speed-up pour 4 processus
+
+| Itérations | Durée Séquentielle (en *s*) | Durée Parallèle (en *s*) | Speed-up |
+|------------|-----------------------------|--------------------------|----------|
+| 30         | 8,05                        | 7,95                     | 1,01     |
+| 100        | 27,5                        | 25,8                     | 1,07     |
+| 300        | 78,7                        | 76,1                     | 1,03     |
+
+*Tableau 1 : Résultat du speed-up pour 4 processus.*
+
+On remarque que les speed-ups sont quasiment égaux à 1. Cela veut dire que le code parallélisé n'est que légèrement plus rapide, c'est quasiment le même temps d'exécution. Autrement dit la complexité ajoutée par la communication entre les processus et la synchronisation des datas entre ces derniers est trop élevée comparée au temps gagné par la parallélisation des calculs. Cependant, cela reste insatisfaisant et nécessite un travail supplémentaire pour paralléliser de façon plus efficace l'algorithme, que nous aurions continué à faire si nous avions eu du temps supplémentaire. 
