@@ -26,68 +26,19 @@ Dans un premier temps, faites une partition de l'image en nbp tranches d'images 
 
 Le calcul du speed up pour cette version de parallélisation, donne les résultats suivants : 
 
-<img src="speedup1.png" alt="" width="600">
+<img src="colorize1.png" alt="" width="600">
 
+voici les images que j'ai obtenu pour respectivement 1,2,3 et 4 processeurs : 
 
-Bien que le résultat obtenu soit convenable, cette stratégie peut mener à des portions d'images qui soient non colorées car 
+<img src="colorize1_1proc.png" alt="" width="600">
+<img src="colorize1_2proc.png" alt="" width="600">
+<img src="colorize1_3proc.png" alt="" width="600">
+<img src="colorize1_4proc.png" alt="" width="600">
+
+Bien que le résultat obtenu soit convenable, cette stratégie peut mener à des portions d'images qui soient non colorées car il se peut que certains morceaux marqués par la couleur dans l'image 'marquée' ne soient pas sur la portion calculée par le processus.
 
 Dans un deuxième temps, construire une partie de la matrice globale (correspondant à l'image complète) et paralléliser les produits matrice-vecteur ainsi que le gradient conjugué afin de résoudre un problème global en parallèle plutôt que plusieurs problèmes locaux. Vous nommerez le fichier parallélisé **colorize2.py**.
 
+Je n'ai pas eu le temps de finir cette partie, cependant, voilà comment j'aurais procédé :
 
-De plus l'hypothèse que les processus prennent environ la même durée se vérifie : l'écart type des temps de calcul 
-est de l'ordre de 4 * 10^{-3} et celle du temps d'enregistrement de 6 * 10^{-2}.
-
-
-_Remarque :_ Pour Thread=1, cela correspond à un seul thread avec mpi.
-
-**Remarque** : Pour vérifier si les images contiennent des erreurs ou non, on peut vérifier que les fichiers images sont les mêmes qu'avec le code séquentiel en utilisant :
-
-    md5sum -c check_resultats_md.md5sum
-ou
-
-    md5sum -c check_resultats_png.md5sum  # si vous avez choisi save_as_png
-
-## Calcul d'une enveloppe convexe
-
-On veut calculer l'enveloppe convexe d'un nuage de point sur le plan. Pour cela on utilise l'algorithme de Graham décrit dans le lien suivant :
-
-    https://fr.wikipedia.org/wiki/Parcours_de_Graham
-
-On obtient en sortie une sous-liste de points du nuage qui définissent l’enveloppe convexe. Ces points sont rangés de manière à parcourir le polygone de l’enveloppe dans le sens direct.
-
-Le code séquentiel peut être trouvé dans le fichier `enveloppe_convexe.py`. En sortie, le code affiche les points et l'enveloppe convexe à l'écran.
-
-Afin de paralléliser le code en distribué avec MPI, on veut distribuer les sommets sur plusieurs processus puis utiliser l’algorithme suivant :
-
-- Calculer l’enveloppe convexe des sommets locaux de chaque processus
-- Puis en échangeant deux à deux entre les processus les enveloppes convexes locales, calcul sur chacun la fusion des deux enveloppes convexes en remarquant que
-l’enveloppe convexe de deux enveloppes convexe est l’enveloppe convexe de la réunion
-des sommets définissant les deux enveloppes convexes.
-
-1. Dans un premier temps, mettre en œuvre l’algorithme sur deux processus.
-
-Sans parallélisation, la génération de points prend 0.0172 s et le calcul de l'enveloppe convexe prend
-2,9552 s.
-
-Il semblerait que la fonction de calcul d'enveloppe convexe soit erronée (à cause
-des arrondis) : sans mpi, ajouter `enveloppe = calcul_enveloppe(enveloppe)` a pour conséquence
-de retirer 3 points de l'enveloppe convexe. La fonction de vérification ne fonction alors plus.
-
-2. Dans un deuxième temps, en utilisant un algorithme de type hypercube, de sorte qu’un processus fusionne son enveloppe convexe avec le processus se trouvant dans la direction d, mettre en œuvre l’algorithme sur `2**n` processus.
-
-
-
-3. Mesurer les speed ups de votre algorithme en suivant le critère de Amdhal et de Gustafson. Interprétez votre résultat au regard de la complexité de l'algorithme et commentez.
-
-_Non faite_
-
----
-
-### Exemple sur 8 processus
-
-- Les processus 0 à 7 calculent l’enveloppe convexe de leur nuage de points local.
-- Le processus 0 et le processus 1 fusionnent leurs enveloppes, idem pour 2 avec 3, 4 avec 5 et 6 avec 7.
-- Le processus 0 et le processus 2 fusionnent leurs enveloppes, idem pour 1 avec 3, 4 avec 6 et 5 avec 7.
-- Le processus 0 et le processus 4 fusionnent leurs enveloppes, idem pour 1 avec 5, 2 avec 6 et 3 avec 7.
-
----
+J'aurais divisé la matrice globale en plusieurs sous matrices en fonctions du nombre de processeurs, de façon à pouvoir faire des calculs matriciels sans avoir besoin de communiquer entre les processus. Puis, j'aurais implémenté une méthode permettant de faire un calcul matriciel avec des "bouts" de matrices. 
