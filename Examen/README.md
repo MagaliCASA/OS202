@@ -9,8 +9,11 @@ Nombre de coeurs logiques de la machine : 4
 Quantité de mémoire cache L2 et L3 de la machine :
 
 Cache L1d : 128 KiB
+
 Cache L1i : 128 KiB
+
 Cache L2 : 1 MiB
+
 Cache L3 : 6 MiB
 
 ## Colorisation d'une photo noir et blanc
@@ -19,28 +22,17 @@ Le but de ce programme est de paralléliser un algorithme qui colorie une photo 
 
 ### Parallélisation 
 
-Dans un premier temps, faites une partition de l'image en nbp tranches d'images et demandez à chaque processus d'essayer de coloriser sa portion d'image à partir des conditions de Dirichlet correspondant à sa portion d'image et en construisant une matrice uniquement locale à cette portion d'image. Vous nommerez le fichier parallélisé colorize1.py
+Dans un premier temps, faites une partition de l'image en nbp tranches d'images et demandez à chaque processus d'essayer de coloriser sa portion d'image à partir des conditions de Dirichlet correspondant à sa portion d'image et en construisant une matrice uniquement locale à cette portion d'image. Vous nommerez le fichier parallélisé **colorize1.py**.
+
+Le calcul du speed up pour cette version de parallélisation, donne les résultats suivants : 
+
+<img src="speedup1.png" alt="" width="600">
 
 
+Bien que le résultat obtenu soit convenable, cette stratégie peut mener à des portions d'images qui soient non colorées car 
 
-| 0    | 1      | 2         | 3         |
-|------|--------|-----------|-----------|
-| 0-63 | 64-127 | 128 - 191 | 192 - 255 |
+Dans un deuxième temps, construire une partie de la matrice globale (correspondant à l'image complète) et paralléliser les produits matrice-vecteur ainsi que le gradient conjugué afin de résoudre un problème global en parallèle plutôt que plusieurs problèmes locaux. Vous nommerez le fichier parallélisé **colorize2.py**.
 
-Étant donné que l'on doit calculer le même nombre d'étapes (il n'y a pas d'autres 
-conditions d'arrêts que le nombre d'itérations) puis enregistrer le résultat, je
-ne vois pas de raison apriori qui pourrait expliquer que certains processus
-soit plus long que d'autres.
-
-
-2. Créer une courbe donnant l'accélération obtenue avec votre parallélisation (jusqu'à la limite du nombre de coeur physique présent sur votre ordinateur).
-
-Sans parallélisation (sans mpi), le programme prend 0.440092 s pour générer les cellules et 
-4,74 s pour enregistrer le résultat.
-
-<img src="temps_enregistrement.png" alt="" width="600">
-
-<img src="temps_calcul.png" alt="" width="600">
 
 De plus l'hypothèse que les processus prennent environ la même durée se vérifie : l'écart type des temps de calcul 
 est de l'ordre de 4 * 10^{-3} et celle du temps d'enregistrement de 6 * 10^{-2}.
