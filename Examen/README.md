@@ -28,7 +28,10 @@ Le calcul du speed up pour cette version de parallélisation, donne les résulta
 
 <img src="colorize1.png" alt="" width="600">
 
-voici les images que j'ai obtenu pour respectivement 1,2,3 et 4 processeurs : 
+On remarque que les speed-ups sont supérieurs/égaux à 1. Cela veut dire que le code parallélisé n'est que légèrement plus rapide, voire plus lent dans le dernier cas, que le code séquentiel. Autrement dit la complexité ajoutée par la communication entre les processus et la synchronisation des datas entre ces derniers est trop élevée comparée au temps gagné par la parallélisation des calculs. Une explication supplémentaire en adéquation avec l'analyse a priori serait que l'algorithme est très fortement memory bound, donc le fait d'augmenter le nombre de processus est limité par l'utilisation massive de la mémoire.
+
+Cependant, cela reste insatisfaisant et nécessite un travail supplémentaire pour paralléliser de façon plus efficace l'algorithme, que nous aurions continué à faire si nous avions eu du temps supplémentaire. 
+Voici les images que j'ai obtenu pour respectivement 1,2,3 et 4 processeurs : 
 
 <img src="colorize1_1proc.png" alt="" width="600">
 <img src="colorize1_2proc.png" alt="" width="600">
