@@ -269,87 +269,129 @@ def minimize( A : sparse.csr_matrix, b : np.array, x0 : np.array, niters : int, 
         if nrm_r < epsilon*nrm_r0: break 
     return x
 
+def distribute_image(total_length, num_processes, process_rank):
+    colomns_per_process = total_length // num_processes
+    remainder = total_length % num_processes
+    start_loc_length = process_rank * colomns_per_process + min(process_rank, remainder)
+    end_loc_length = start_loc_length + colomns_per_process + (1 if process_rank < remainder else 0)
+    return start_loc_length, end_loc_length #attention c'est exclu : le process_rank s'occupe des colonnes start_loc_length jusqu'à end_loc_length-1
+
 
 if __name__ == '__main__':
     # On va charger l'image afin de lire l'intensite de chaque pixel.
     # Puis on va creer un tableau contenant deux couches de cellules fantomes
     # pour pouvoir calculer facilement la moyenne puis la variance de chaque pixel
     # avec ses huit voisins immediats.
+
     im_gray = Image.open(gray_img)
     im_gray = im_gray.convert('HSV')
+
     # On convertit l'image en tableau (ny x nx x 3) (Trois pour les trois composantes de la couleur)
     values_gray = np.array(im_gray)
-    # On créer le tableau d'intensite en rajoutant deux couches de cellules fantomes dans chaque direction :
-    intensity = (1./255.)*create_field(values_gray, INTENSITY, nb_layers=2, prolong_field=True)
+
+    # on divise l'image en le nombre de processus, en stockant dans start_loc_length et end_loc_length 
+    # respectivement la colonne de début et celle de fin du processus, ainsi chaque processus a un bout d'image vertical :
+    # contenant toutes les lignes mais un nomnbre de colonne réduit 
+
+    start_loc_length,end_loc_length = distribute_image(np.size(values_gray)[1],nbp,rank)
+    loc_values_gray = values_gray[:,start_loc_length:end_loc_length]
+
+    # On créer le tableau d'intensite local, en rajoutant deux couches de cellules fantomes dans chaque direction :
+    loc_intensity = (1./255.)*create_field(loc_values_gray, INTENSITY, nb_layers=2, prolong_field=True)
 
     # Calcul de la moyenne de l'intensite pour chaque pixel avec ses huit voisins
     # La moyenne contient une couche de cellules fantomes (une de moins que l'intensite)
     deb = time.time()
-    means = compute_means(intensity)
+    loc_means = compute_means(loc_intensity)
     end = time.time() - deb
-    print(f"Temps calcul moyenne : {end} secondes")
+    print(f"Temps calcul moyenne par le processus {rank} : {end} secondes")
     # Calcul de la variance de l'intensite pour chaque pixel avec ses huit voisins
     # La variance contient une couche de cellules fantomes comme la moyenne.
     deb = time.time()
-    variance = compute_variance(intensity, means)
+    loc_variance = compute_variance(loc_intensity, loc_means)
     end = time.time() - deb
-    print(f"Temps calcul variance : {end} secondes")
+    print(f"Temps calcul variance par le processus {rank} : {end} secondes")
 
     # Calcul de la matrice utilisee pour minimiser la fonction quadratique
     deb = time.time()
-    A = compute_matrix((means.shape[1]-2,means.shape[0]-2), 0, intensity, means, variance)
+    loc_A = compute_matrix((loc_means.shape[1]-2,loc_means.shape[0]-2), 0, loc_intensity, loc_means, loc_variance)
     end = time.time() - deb
-    print(f"Temps calcul matrice : {end} secondes")
+    print(f"Temps calcul matrice par le processus {rank} : {end} secondes")
 
     # Calcul des seconds membres
     im = Image.open(marked_img)
     im_ycbcr = im.convert('YCbCr')
-    val_ycbcr = np.array(im_ycbcr)
+    val_ycbcr_loc = np.array(im_ycbcr[:,start_loc_length:end_loc_length])
+
     # Les composantes Cb (bleu) et Cr (Rouge) sont normalisees :
-    Cb = (1./255.)*np.array(val_ycbcr[:,:,CB].flat, dtype=np.double)
-    Cr = (1./255.)*np.array(val_ycbcr[:,:,CR].flat, dtype=np.double)
+    Cb_loc = (1./255.)*np.array(val_ycbcr_loc[:,:,CB].flat, dtype=np.double)
+    Cr_loc = (1./255.)*np.array(val_ycbcr_loc[:,:,CR].flat, dtype=np.double)
 
     deb=time.time()
-    b_Cb = -A.dot(Cb)
-    b_Cr = -A.dot(Cr)
+    loc_b_Cb = -loc_A.dot(Cb_loc)
+    loc_b_Cr = -loc_A.dot(Cr_loc)
     end = time.time() - deb
-    print(f"Temps calcul des deux seconds membres : {end} secondes")
+    print(f"Temps calcul des deux seconds membres par le processus {rank} : {end} secondes")
 
     im_hsv = im.convert("HSV")
-    val_hsv = np.array(im_hsv)
+    loc_val_hsv = np.array(im_hsv[:,start_loc_length:end_loc_length])
     deb = time.time()
-    fix_coul_indices = search_fixed_colored_pixels(val_hsv)
+    loc_fix_coul_indices = search_fixed_colored_pixels(loc_val_hsv)
     end = time.time() - deb
-    print(f"Temps recherche couleur fixee : {end} secondes")
+    print(f"Temps recherche couleur fixee par le processus {rank} : {end} secondes")
 
     # Application de la condition de Dirichlet sur la matrice :    
     deb = time.time()
-    apply_dirichlet(A, fix_coul_indices)
+    apply_dirichlet(loc_A, loc_fix_coul_indices)
     end = time.time() - deb
-    print(f"Temps application dirichlet sur matrice : {end} secondes")
+    print(f"Temps application dirichlet sur matrice par le processus {rank} : {end} secondes")
 
     print(f"Minimisation de la quadratique pour la composante Cb de l'image couleur")
     deb=time.time()
-    x0 = np.zeros(Cb.shape,dtype=np.double)
-    new_Cb = Cb + minimize(A, b_Cb, x0, niters,epsilon)
-    print(f"\nTemps calcul min Cb : {time.time()-deb}")
+    x0_loc = np.zeros(Cb_loc.shape,dtype=np.double)
+    new_Cb_loc = Cb_loc + minimize(loc_A, loc_b_Cb, x0_loc, niters,epsilon)
+    print(f"\nTemps calcul min Cb par le processus {rank} : {time.time()-deb}")
 
     print(f"Minimisation de la quadratique pour la composante Cr de l'image couleur")
     deb=time.time()
-    x0 = np.zeros(Cr.shape,dtype=np.double)
-    new_Cr = Cr + minimize(A, b_Cr, x0, niters,epsilon)
-    print(f"\nTemps calcul min Cr : {time.time()-deb}")
+    x0_loc = np.zeros(Cr_loc.shape,dtype=np.double)
+    new_Cr_loc = Cr_loc + minimize(loc_A, loc_b_Cr, x0_loc, niters,epsilon)
+    print(f"\nTemps calcul min Cr par le processus {rank} : {time.time()-deb}")
 
     # On remet les valeurs des trois composantes de l'image couleur YCbCr entre 0 et 255 :
-    new_Cb *= 255.
-    new_Cr *= 255.
-    intensity *= 255.
+    new_Cb_loc *= 255.
+    new_Cr_loc *= 255.
+    loc_intensity *= 255.
 
     # Puis on sauve l'image dans un fichier :
-    shape = (means.shape[0]-2,means.shape[1]-2)
-    new_image_array = np.empty((shape[0],shape[1],3), dtype=np.uint8)
-    new_image_array[:,:,0] = intensity[2:-2,2:-2].astype('uint8')
-    new_image_array[:,:,1] = np.reshape(new_Cb, shape).astype('uint8')
-    new_image_array[:,:,2] = np.reshape(new_Cr, shape).astype('uint8')
-    new_im = Image.fromarray(new_image_array, mode='YCbCr')
-    new_im.convert('RGB').save(output, 'PNG')
+    shape = (loc_means.shape[0]-2,loc_means.shape[1]-2)
+    new_image_array_loc = np.empty((shape[0],shape[1],3), dtype=np.uint8)
+    new_image_array_loc[:,:,0] = loc_intensity[2:-2,2:-2].astype('uint8')
+    new_image_array_loc[:,:,1] = np.reshape(new_Cb_loc, shape).astype('uint8')
+    new_image_array_loc[:,:,2] = np.reshape(new_Cr_loc, shape).astype('uint8')
+
+    comm.send((loc_means.shape[0],loc_means.shape[1],start_loc_length,end_loc_length),dest=0)
+    comm.send((new_image_array_loc[:,:,0],new_image_array_loc[:,:,1],new_image_array_loc[:,:,2]),dest=0)
+
+    if rank==0:
+        shape_0 = 0
+        shape_1 = 0
+        starts = [start_loc_length]
+        ends = [end_loc_length]
+        for i in range (1,size):
+            shape0,shape1,start_length,end_length = comm.recv(source=i)
+            shape_0 += shape0
+            shape_1 += shape_1
+            starts.append(start_length)
+            ends.append(end_length)
+                
+        new_image_array = np.empty((shape_0,shape_1,3), dtype=np.uint8)
+        new_image_array[:,starts[0],ends[0]:,0] = new_image_array_loc[:,:,0]
+        new_image_array[:,starts[0],ends[0]:,1] = new_image_array_loc[:,:,1]
+        new_image_array[:,starts[0],ends[0]:,2] = new_image_array_loc[:,:,2]
+
+        for i in range(1,size):
+            new_image_array[:,starts[i],ends[i]:,0],new_image_array[:,starts[i],ends[i]:,1],new_image_array[:,starts[i],ends[i]:,2] = comm.recv(source=i)
+        new_im = Image.fromarray(new_image_array, mode='YCbCr')
+        new_im.convert('RGB').save(output, 'PNG')
+
