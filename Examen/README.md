@@ -28,7 +28,7 @@ Le calcul du speed up pour cette version de parallélisation, donne les résulta
 
 <img src="colorize1.png" alt="" width="600">
 
-On remarque que les speed-ups sont supérieurs/égaux à 1. Cela veut dire que le code parallélisé n'est que légèrement plus rapide, voire plus lent dans le dernier cas, que le code séquentiel. Autrement dit la complexité ajoutée par la communication entre les processus et la synchronisation des datas entre ces derniers est trop élevée comparée au temps gagné par la parallélisation des calculs. 
+On remarque que les speed-ups sont inférieurs/égaux à 1. Cela veut dire que le code parallélisé n'est que légèrement plus rapide, voire plus lent dans le dernier cas, que le code séquentiel. Autrement dit la complexité ajoutée par la communication entre les processus et la synchronisation des datas entre ces derniers est trop élevée comparée au temps gagné par la parallélisation des calculs. 
 
 Cependant, cela reste insatisfaisant et nécessite un travail supplémentaire pour paralléliser de façon plus efficace l'algorithme, que nous aurions continué à faire si nous avions eu du temps supplémentaire. 
 
