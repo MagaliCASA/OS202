@@ -8,6 +8,11 @@ from numpy import linalg
 import scipy as sp
 from scipy import sparse
 import time
+from mpi4py import MPI
+
+comm = MPI.COMM_WORLD
+nbp     = comm.Get_size()
+rank    = comm.Get_rank()
 
 gray_img = "example.bmp"
 marked_img = "example_marked.bmp"
