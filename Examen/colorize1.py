@@ -282,6 +282,7 @@ if __name__ == '__main__':
     # Puis on va creer un tableau contenant deux couches de cellules fantomes
     # pour pouvoir calculer facilement la moyenne puis la variance de chaque pixel
     # avec ses huit voisins immediats.
+    t_speed_up_deb = time.time()
 
     im_gray = Image.open(gray_img)
     im_gray = im_gray.convert('HSV')
@@ -292,8 +293,9 @@ if __name__ == '__main__':
     # on divise l'image en le nombre de processus, en stockant dans start_loc_length et end_loc_length 
     # respectivement la colonne de début et celle de fin du processus, ainsi chaque processus a un bout d'image vertical :
     # contenant toutes les lignes mais un nomnbre de colonne réduit 
+    size_values_gray = np.shape(values_gray)
 
-    start_loc_length,end_loc_length = distribute_image(np.size(values_gray)[1],nbp,rank)
+    start_loc_length,end_loc_length = distribute_image(size_values_gray[1],nbp,rank)
     loc_values_gray = values_gray[:,start_loc_length:end_loc_length]
 
     # On créer le tableau d'intensite local, en rajoutant deux couches de cellules fantomes dans chaque direction :
@@ -321,7 +323,8 @@ if __name__ == '__main__':
     # Calcul des seconds membres
     im = Image.open(marked_img)
     im_ycbcr = im.convert('YCbCr')
-    val_ycbcr_loc = np.array(im_ycbcr[:,start_loc_length:end_loc_length])
+    val_ycbcr = np.array(im_ycbcr)
+    val_ycbcr_loc = val_ycbcr[:,start_loc_length:end_loc_length]
 
     # Les composantes Cb (bleu) et Cr (Rouge) sont normalisees :
     Cb_loc = (1./255.)*np.array(val_ycbcr_loc[:,:,CB].flat, dtype=np.double)
@@ -334,9 +337,10 @@ if __name__ == '__main__':
     print(f"Temps calcul des deux seconds membres par le processus {rank} : {end} secondes")
 
     im_hsv = im.convert("HSV")
-    loc_val_hsv = np.array(im_hsv[:,start_loc_length:end_loc_length])
+    val_hsv = np.array(im_hsv)
+    val_hsv_loc = val_hsv[:,start_loc_length:end_loc_length]
     deb = time.time()
-    loc_fix_coul_indices = search_fixed_colored_pixels(loc_val_hsv)
+    loc_fix_coul_indices = search_fixed_colored_pixels(val_hsv_loc)
     end = time.time() - deb
     print(f"Temps recherche couleur fixee par le processus {rank} : {end} secondes")
 
@@ -370,28 +374,30 @@ if __name__ == '__main__':
     new_image_array_loc[:,:,1] = np.reshape(new_Cb_loc, shape).astype('uint8')
     new_image_array_loc[:,:,2] = np.reshape(new_Cr_loc, shape).astype('uint8')
 
-    comm.send((loc_means.shape[0],loc_means.shape[1],start_loc_length,end_loc_length),dest=0)
-    comm.send((new_image_array_loc[:,:,0],new_image_array_loc[:,:,1],new_image_array_loc[:,:,2]),dest=0)
+    if rank!=0:
+        comm.send((shape[1],start_loc_length,end_loc_length),dest=0)
+        comm.send((new_image_array_loc[:,:,0],new_image_array_loc[:,:,1],new_image_array_loc[:,:,2]),dest=0)
 
     if rank==0:
-        shape_0 = 0
-        shape_1 = 0
+        shape_0 = loc_means.shape[0]-2
+        shape_1 = loc_means.shape[1]-2
         starts = [start_loc_length]
         ends = [end_loc_length]
-        for i in range (1,size):
-            shape0,shape1,start_length,end_length = comm.recv(source=i)
-            shape_0 += shape0
-            shape_1 += shape_1
+        for i in range (1,nbp):
+            shape,start_length,end_length = comm.recv(source=i)
+            shape_1 += shape
             starts.append(start_length)
             ends.append(end_length)
                 
         new_image_array = np.empty((shape_0,shape_1,3), dtype=np.uint8)
-        new_image_array[:,starts[0],ends[0]:,0] = new_image_array_loc[:,:,0]
-        new_image_array[:,starts[0],ends[0]:,1] = new_image_array_loc[:,:,1]
-        new_image_array[:,starts[0],ends[0]:,2] = new_image_array_loc[:,:,2]
+        new_image_array[:,starts[0]:ends[0],0] = new_image_array_loc[:,:,0]
+        new_image_array[:,starts[0]:ends[0],1] = new_image_array_loc[:,:,1]
+        new_image_array[:,starts[0]:ends[0],2] = new_image_array_loc[:,:,2]
 
-        for i in range(1,size):
-            new_image_array[:,starts[i],ends[i]:,0],new_image_array[:,starts[i],ends[i]:,1],new_image_array[:,starts[i],ends[i]:,2] = comm.recv(source=i)
+        for i in range(1,nbp):
+            new_image_array[:,starts[i]:ends[i],0],new_image_array[:,starts[i]:ends[i],1],new_image_array[:,starts[i]:ends[i],2] = comm.recv(source=i)
         new_im = Image.fromarray(new_image_array, mode='YCbCr')
         new_im.convert('RGB').save(output, 'PNG')
+        t_speed_up_end = time.time()
+        print(f'Temps total d exécution : {t_speed_up_end-t_speed_up_deb}')
 

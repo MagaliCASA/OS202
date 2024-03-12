@@ -1,3 +1,2 @@
-chercher le nombre de processus physique et logique sur les ordis de l'ensta ainsi que la quantité de mémoire cache L2 et L3
-copier le readme du prof et le remplir au fur et à mesure 
-git pull 
+val_ycbcr_loc = np.array(im_ycbcr[:,start_loc_length:end_loc_length])
+TypeError: 'Image' object is not subscriptable
